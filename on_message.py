@@ -1,30 +1,27 @@
-from modis import datatools
-from . import _data, api_flipcheck
-from ..._client import client
+import logging
+
+from modis import main
+
+from . import _flipcheck
+
+logger = logging.getLogger(__name__)
 
 
-async def on_message(message):
+async def on_message(msgobj):
     """The on_message event handler for this module
 
     Args:
-        message (discord.Message): Input message
+        msgobj (discord.Message): Input message
     """
 
-    # Simplify message info
-    server = message.server
-    author = message.author
-    channel = message.channel
-    content = message.content
+    # TODO work out how to make this conform to new activation
 
-    data = datatools.get_data()
-
-    if not data["discord"]["servers"][server.id][_data.modulename]["activated"]:
+    # Ignore PMs and don't reply to self
+    if msgobj.guild is None or msgobj.author == main.client.user:
         return
 
-    # Only reply to server messages and don't reply to myself
-    if server is not None and author != channel.server.me:
-        # Do a flip check
-        flipchecked = api_flipcheck.flipcheck(content)
-        if flipchecked:
-            await client.send_typing(channel)
-            await client.send_message(channel, flipchecked)
+    # Do a flip check
+    flipchecked = _flipcheck.check(msgobj.content)
+    if flipchecked:
+        await msgobj.channel.trigger_typing()
+        await msgobj.channel.send(flipchecked)
